@@ -11,18 +11,24 @@ app.use(express.json());
 app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
 
 app.use("/customer/auth/*", function auth(req, res, next) {
-    const token = req.session.token;
-    if (!token) {
-      return res.status(401).json({ message: "No token provided" });
+  let token = req.session.token;
+  if (!token) {
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
     }
-    try {
-      const decoded = jwt.verify(token, 'fingerprint_customer');
-      req.session.user = decoded.username;
-      next();
-    } catch (error) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-  });
+  }
+  if (!token) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+  try {
+    const decoded = jwt.verify(token, 'fingerprint_customer');
+    req.session.user = decoded.username;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+});
  
 const PORT =5000;
 
